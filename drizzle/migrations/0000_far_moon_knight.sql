@@ -37,6 +37,7 @@ CREATE TABLE `prompts` (
 	`title` text NOT NULL,
 	`prompt_type` text DEFAULT 'USER' NOT NULL,
 	`summary` text,
+	`model` text,
 	`created_at` text DEFAULT (datetime('now')) NOT NULL,
 	`updated_at` text DEFAULT (datetime('now')) NOT NULL,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade

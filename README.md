@@ -32,11 +32,7 @@ npm install
 ```
 
 ### Prepare the database
-Promptr stores data in `./data/promptr.db`. Generate the schema by pushing the current Drizzle migrations:
-```bash
-npm run db:push
-```
-This command will create the `data` directory if it does not exist and apply all migrations.
+Promptr stores data in `./data/promptr.db`. The baseline schema is bundled with the app, so a fresh install can start immediately—no manual migration step required. The SQLite file is created on demand the first time you run Promptr. If you customize the schema, you can still generate and apply your own migrations with Drizzle.
 
 ### Run the app
 ```bash
@@ -48,13 +44,12 @@ The development server binds to `0.0.0.0`, so other devices on your network can 
 Promptr works out of the box, but you can override the default database settings:
 - `DATABASE_DIRECTORY` – Directory where the SQLite file is stored. Defaults to `<project-root>/data`.
 - `DATABASE_FILE` – Absolute path to the database file. Defaults to `<DATABASE_DIRECTORY>/promptr.db`.
-- `DATABASE_MIGRATE_ON_BOOT` – When set to `true` (and `NODE_ENV !== "production"`), Promptr runs pending migrations on startup using the bundled Drizzle migrator. Leave unset or `false` in production and run migrations manually.
 
 Set these variables in a `.env.local` file or your preferred configuration system before running the app.
 
 ## Database Workflows
 - `npm run db:generate` – Generate a new SQL migration from the TypeScript schema (`src/db/schema.ts`).
-- `npm run db:push` – Apply migrations to the local SQLite database without prompting.
+
 
 Generated migrations live under `drizzle/migrations/`. They can be checked into version control for reproducible environments.
 
@@ -72,7 +67,7 @@ Generated migrations live under `drizzle/migrations/`. They can be checked into 
 - `npm run start` – Serve the production build (also binds to `0.0.0.0`).
 - `npm run lint` – Run ESLint over the codebase.
 - `npm run db:generate` – Scaffold a Drizzle migration from the current schema.
-- `npm run db:push` – Apply migrations to the SQLite database.
+- `npm run db:push` – Apply migrations if you generate custom SQL.
 
 ## Deployment
 1. Build the app locally or in CI:
@@ -84,8 +79,6 @@ Generated migrations live under `drizzle/migrations/`. They can be checked into 
    ```bash
    npm run start
    ```
-
-Set `DATABASE_MIGRATE_ON_BOOT=true` only in controlled environments where automated migrations are desired; otherwise run `npm run db:push` manually before starting the server.
 
 ## Using Promptr
 - Create a project from the sidebar to start a workspace.
