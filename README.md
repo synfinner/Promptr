@@ -30,7 +30,7 @@ Promptr keeps every prompt, revision, and discussion in one place so teams can m
 
 ### Installation
 ```bash
-git clone <repo-url>
+git clone https://github.com/synfinner/Promptr
 cd promptr
 npm install
 ```
