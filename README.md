@@ -13,10 +13,10 @@ Promptr keeps every prompt, revision, and discussion in one place so teams can m
 - Built with Next.js 16 App Router, React Server Components, Tailwind CSS, and shadcn/ui for a polished, responsive UI.
 
 ## Tech Stack
-- Next.js 16 (App Router, React Server Components) on React 19 and TypeScript.
-- Tailwind CSS 3 + shadcn/ui primitives for interface elements.
-- Drizzle ORM with SQLite (`better-sqlite3`) for local data storage and migrations.
-- ESLint, PostCSS, and modern tooling pre-configured for iterative development.
+- Next.js 16.0.0 (App Router, React Server Components) running on React 19.2.0 and TypeScript 5.9.3.
+- Tailwind CSS 3.4.18 + shadcn/ui primitives (Radix UI 1.x) for interface elements.
+- Drizzle ORM 0.44.6 with SQLite via `better-sqlite3` 12.4.1 for local data storage and migrations.
+- ESLint 9.38.0, PostCSS 8.5.6, and Autoprefixer 10.4.21 for linting and build tooling.
 
 ## Getting Started
 ### Prerequisites
