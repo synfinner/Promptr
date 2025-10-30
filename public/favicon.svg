@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="prompt-bg" x1="12%" x2="88%" y1="8%" y2="92%">
+      <stop offset="0%" stop-color="#4C1D95"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="prompt-glow" x1="20%" x2="80%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity=".6"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#prompt-bg)"/>
+  <rect width="48" height="48" rx="12" fill="url(#prompt-glow)"/>
+  <path
+    fill="#F8FAFC"
+    d="M14 12h10c6.3 0 11 3.7 11 9.5S30.3 31 24 31h-2v6h-8V12Zm8 6v6h2c3 0 4.5-1.9 4.5-3S27 18 24 18h-2Z"
+  />
+  <path
+    fill="#C084FC"
+    d="M24 38c-.7 0-1.3.3-1.7.8L20 41.8c-.7.8-.2 2.2.9 2.2h6.2c1.1 0 1.6-1.3.9-2.1l-2.3-3c-.4-.5-1-.9-1.7-.9Z"
+  />
+  <circle cx="34.5" cy="14" r="4" fill="#FDE68A" opacity=".8"/>
+</svg>
