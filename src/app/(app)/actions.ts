@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db/client";
@@ -75,6 +74,7 @@ type ActionState = {
   success?: string;
   error?: string;
   issues?: string[];
+  redirectTo?: string;
 };
 
 function now() {
@@ -109,7 +109,10 @@ export async function createProject(
 
   revalidatePath("/", "layout");
 
-  redirect(`/?project=${id}`);
+  return {
+    success: "Project created.",
+    redirectTo: `/?project=${id}`,
+  };
 }
 
 export async function createPrompt(
@@ -158,7 +161,10 @@ export async function createPrompt(
 
   revalidatePath("/", "layout");
 
-  redirect(`/?project=${parsed.data.projectId}&prompt=${promptId}`);
+  return {
+    success: "Prompt captured.",
+    redirectTo: `/?project=${parsed.data.projectId}&prompt=${promptId}`,
+  };
 }
 
 export async function createRevision(
@@ -221,9 +227,100 @@ export async function createRevision(
 
   revalidatePath("/", "layout");
 
-  redirect(
-    `/?project=${prompt?.projectId ?? ""}&prompt=${parsed.data.promptId}&revision=${revisionId}`
-  );
+  return {
+    success: "New revision created.",
+    redirectTo: `/?project=${prompt?.projectId ?? ""}&prompt=${parsed.data.promptId}&revision=${revisionId}`,
+  };
+}
+
+export async function deletePromptAction({
+  promptId,
+  projectId,
+}: {
+  promptId: string;
+  projectId: string;
+}): Promise<ActionState> {
+  if (!promptId) {
+    return { error: "Prompt id missing." };
+  }
+
+  try {
+    const timestamp = now();
+    const revisionIds = await db
+      .select({ id: promptRevisions.id })
+      .from(promptRevisions)
+      .where(eq(promptRevisions.promptId, promptId));
+
+    const revisionIdValues = revisionIds.map((rev) => rev.id);
+
+    if (revisionIdValues.length) {
+      await db
+        .delete(promptComments)
+        .where(inArray(promptComments.revisionId, revisionIdValues));
+      await db
+        .delete(promptRevisions)
+        .where(eq(promptRevisions.promptId, promptId));
+    }
+
+    await db.delete(prompts).where(eq(prompts.id, promptId));
+
+    if (projectId) {
+      await db
+        .update(projects)
+        .set({ updatedAt: timestamp })
+        .where(eq(projects.id, projectId));
+    }
+
+    revalidatePath("/", "layout");
+    return { success: "Prompt deleted." };
+  } catch (error) {
+    console.error("Failed to delete prompt", error);
+    return { error: "Unable to delete prompt. Please try again." };
+  }
+}
+
+export async function deleteProjectAction({
+  projectId,
+}: {
+  projectId: string;
+}): Promise<ActionState> {
+  if (!projectId) {
+    return { error: "Project id missing." };
+  }
+
+  try {
+    const projectPrompts = await db
+      .select({ id: prompts.id })
+      .from(prompts)
+      .where(eq(prompts.projectId, projectId));
+
+    if (projectPrompts.length) {
+      const promptIds = projectPrompts.map((prompt) => prompt.id);
+      const projectRevisions = await db
+        .select({ id: promptRevisions.id })
+        .from(promptRevisions)
+        .where(inArray(promptRevisions.promptId, promptIds));
+
+      if (projectRevisions.length) {
+        const revisionIds = projectRevisions.map((revision) => revision.id);
+        await db
+          .delete(promptComments)
+          .where(inArray(promptComments.revisionId, revisionIds));
+      }
+
+      await db
+        .delete(promptRevisions)
+        .where(inArray(promptRevisions.promptId, promptIds));
+      await db.delete(prompts).where(inArray(prompts.id, promptIds));
+    }
+
+    await db.delete(projects).where(eq(projects.id, projectId));
+    revalidatePath("/", "layout");
+    return { success: "Project deleted." };
+  } catch (error) {
+    console.error("Failed to delete project", error);
+    return { error: "Unable to delete project. Please try again." };
+  }
 }
 
 export async function addComment(

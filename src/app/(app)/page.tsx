@@ -51,33 +51,45 @@ export default async function PromptrDashboard({
     : null;
 
   return (
-    <div className="relative isolate w-full">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_120%_at_10%_0%,rgba(99,102,241,0.14),transparent_55%)] dark:bg-[radial-gradient(70%_120%_at_10%_0%,rgba(15,23,42,0.38),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-1/3 -z-10 h-2/3 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),transparent)] dark:bg-[linear-gradient(180deg,rgba(13,16,28,0.88),transparent)]" />
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[1760px] flex-col gap-6 px-3 py-6 sm:px-4 md:px-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-10 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] xl:gap-10">
+    <div className="relative h-screen w-full overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-transparent to-transparent dark:from-primary/10" />
+      <div className="pointer-events-none absolute inset-x-0 top-1/3 -z-10 h-2/3 bg-gradient-to-b from-background/70 via-background/40 to-transparent dark:from-background/80 dark:via-background/40" />
+      <div className="relative z-10 grid h-full w-full grid-cols-1 gap-0 bg-transparent md:grid-cols-[minmax(320px,360px)_minmax(600px,1fr)_minmax(340px,400px)]">
         {/* Project & Prompt navigation */}
-        <aside className="order-2 flex flex-col gap-4 lg:order-1 lg:sticky lg:top-8 lg:max-h-[calc(100vh-8rem)] lg:pr-2 xl:pr-4">
-          <ProjectSidebar
-            projects={projects}
-            selectedProjectId={activeProjectId}
-            className="lg:flex-1"
-          />
-          <PromptList
-            projectId={activeProjectId}
-            prompts={prompts}
-            selectedPromptId={activePromptId}
-            className="lg:flex-[1.2]"
-          />
+        <aside className="hidden h-full min-w-[300px] overflow-y-auto border-r border-border/40 bg-background/70 md:flex md:flex-col md:min-w-[340px] lg:min-w-[360px]">
+          <div className="flex flex-1 flex-col space-y-3 px-4 py-3 pb-10 sm:px-5">
+            <ProjectSidebar
+              projects={projects}
+              selectedProjectId={activeProjectId}
+              className="min-h-0 flex-1"
+            />
+            <PromptList
+              projectId={activeProjectId}
+              prompts={prompts}
+              selectedPromptId={activePromptId}
+              className="min-h-0 flex-1"
+            />
+          </div>
         </aside>
 
         {/* Main Content Area */}
-        <main className="order-1 flex-1 min-w-0 lg:order-2">
-          <Suspense fallback={<div className="rounded-2xl border border-border/60 bg-background/70 p-6 shadow-lg shadow-slate-900/5 dark:shadow-black/40">Loading…</div>}>
-            <PromptDetail
-              prompt={promptDetails}
-              selectedRevisionId={requestedRevision}
-            />
-          </Suspense>
+        <main className="col-span-1 flex h-full min-w-0 flex-col overflow-hidden bg-background/50 md:col-span-2">
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 py-6 pb-10 sm:px-6 md:px-8 lg:px-10">
+              <Suspense
+                fallback={
+                  <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-background/80 p-6 shadow-lg shadow-slate-900/5 dark:shadow-black/40">
+                    Loading…
+                  </div>
+                }
+              >
+                <PromptDetail
+                  prompt={promptDetails}
+                  selectedRevisionId={requestedRevision}
+                />
+              </Suspense>
+            </div>
+          </div>
         </main>
       </div>
     </div>

@@ -85,10 +85,30 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        toastIn: {
+          from: {
+            transform: "translate3d(0, calc(100% + 1rem), 0)",
+            opacity: "0",
+          },
+          to: {
+            transform: "translate3d(0, 0, 0)",
+            opacity: "1",
+          },
+        },
+        toastOut: {
+          from: {
+            opacity: "1",
+          },
+          to: {
+            opacity: "0",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        toastIn: "toastIn 0.35s ease-out forwards",
+        toastOut: "toastOut 0.45s ease-in forwards",
       },
     },
   },

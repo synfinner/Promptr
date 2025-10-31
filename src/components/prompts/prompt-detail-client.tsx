@@ -1,8 +1,19 @@
 "use client";
 
 import { diffWords } from "diff";
+import {
+  ChevronRight,
+  Clock3,
+  Cpu,
+  FileText,
+  Folder,
+  GitCompare,
+  Layers,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { AddCommentForm } from "@/components/prompts/add-comment-form";
 import { CreateRevisionSheet } from "@/components/prompts/create-revision-sheet";
@@ -61,7 +72,7 @@ export function PromptDetailClient({
     revisions.find((revision) => revision.id === selectedRevisionId) ??
     revisions[0];
 
-  const [viewMode, setViewMode] = useState<"diff" | "raw">("raw");
+  const [viewMode, setViewMode] = useState<"raw" | "diff">("raw");
   const [compareRevisionId, setCompareRevisionId] = useState<string | null>(
     defaultCompareRevisionId
   );
@@ -72,9 +83,13 @@ export function PromptDetailClient({
       ? revisions.find((revision) => revision.id === compareRevisionId)
       : findPreviousRevision(revisions, selectedRevision);
 
-  const diffWithLineNumbers = buildWordDiffLines(
-    compareRevision?.content ?? "",
-    selectedRevision.content
+  const diffWithLineNumbers = useMemo(
+    () =>
+      buildWordDiffLines(
+        compareRevision?.content ?? "",
+        selectedRevision.content
+      ),
+    [compareRevision?.content, selectedRevision.content]
   );
 
   const formattedUpdatedAt = new Date(prompt.updatedAt).toLocaleString(
@@ -85,118 +100,202 @@ export function PromptDetailClient({
     }
   );
 
-  const metadata: { label: string; value: string }[] = [
+  const metadata: {
+    label: string;
+    value: string;
+    icon: LucideIcon;
+  }[] = [
     {
       label: "Model",
       value: prompt.model ?? "—",
+      icon: Cpu,
     },
     {
       label: "Project",
       value: prompt.project?.name ?? "Unknown",
+      icon: Folder,
     },
     {
       label: "Latest Update",
       value: formattedUpdatedAt,
+      icon: Clock3,
     },
     {
       label: "Total Revisions",
       value: revisions.length.toString(),
+      icon: Layers,
+    },
+  ];
+
+  const breadcrumbs = [
+    {
+      label: "Projects",
+      href: "/",
+    },
+    {
+      label: prompt.project?.name ?? "Project",
+      href: `/?project=${prompt.projectId}`,
+    },
+    {
+      label: prompt.title,
+      href: `/?project=${prompt.projectId}&prompt=${prompt.id}`,
+    },
+    {
+      label: `v${selectedRevision.version}`,
+      href: undefined,
     },
   ];
 
   return (
-    <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_360px]">
-      <Card className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-[0_45px_110px_-70px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/70 dark:shadow-[0_55px_140px_-72px_rgba(2,8,23,0.9)] md:min-h-[560px]">
-        <CardHeader className="space-y-6 border-b border-white/50 bg-white/96 pb-8 dark:border-white/10 dark:bg-slate-900/75">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <Badge className="rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary dark:border-primary/50 dark:bg-primary/25 dark:text-white">
-                {prompt.promptType.toLowerCase()}
-              </Badge>
-              <div className="space-y-2">
-                <CardTitle className="text-3xl font-semibold tracking-tight">
-                  {prompt.title}
-                </CardTitle>
-                {prompt.summary ? (
-                  <p className="max-w-2xl text-sm text-muted-foreground/90">
-                    {prompt.summary}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex items-center">
-              <CreateRevisionSheet
-                promptId={prompt.id}
-                currentContent={selectedRevision.content}
-              />
+    <Tabs
+      value={viewMode}
+      onValueChange={(value) => setViewMode(value as "raw" | "diff")}
+      className="flex h-full min-h-0 flex-col"
+    >
+      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-6 pt-4 md:pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:gap-8">
+        <div className="flex min-h-0 flex-col">
+          <div className="flex-1 overflow-y-auto pr-1 pb-10 [scrollbar-gutter:stable]">
+            <div className="flex flex-col gap-6">
+              <Card className="relative flex flex-col rounded-3xl border border-border/70 bg-card/95 shadow-lg shadow-black/5">
+                <CardHeader className="space-y-3 border-b border-border/60 px-6 py-6 md:py-7">
+                  <div className="flex flex-wrap items-start justify-between gap-3 md:gap-4">
+                    <div className="space-y-3">
+                      <nav className="flex flex-wrap items-center gap-1 text-xs font-medium text-muted-foreground">
+                        {breadcrumbs.map((crumb, index) => {
+                          const isLast = index === breadcrumbs.length - 1;
+                          const key = `${crumb.label}-${index}`;
+                          const content =
+                            crumb.href && !isLast ? (
+                              <Link
+                                href={crumb.href}
+                                className="flex items-center gap-1 rounded-full bg-muted/60 px-3 py-1 text-xs text-muted-foreground transition hover:bg-muted/80 hover:text-foreground"
+                              >
+                                {crumb.label}
+                              </Link>
+                            ) : (
+                              <span className="flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                                {crumb.label}
+                              </span>
+                            );
+
+                          return (
+                            <div
+                              key={key}
+                              className={cn(
+                                "flex items-center gap-1",
+                                isLast && "text-foreground"
+                              )}
+                            >
+                              {content}
+                              {!isLast ? (
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </nav>
+                      <div className="space-y-3">
+                        <Badge
+                          variant="outline"
+                          className="rounded-full border-primary/50 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary"
+                        >
+                          {prompt.promptType.toLowerCase()}
+                        </Badge>
+                        <div className="space-y-1.5">
+                          <CardTitle className="text-2xl font-semibold tracking-tight">
+                            {prompt.title}
+                          </CardTitle>
+                          {prompt.summary ? (
+                            <p className="max-w-2xl text-base leading-snug text-muted-foreground">
+                              {prompt.summary}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                      <TabsList className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 p-1 shadow-sm shadow-black/5">
+                        <TabsTrigger
+                          value="raw"
+                          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm"
+                        >
+                          <FileText className="h-4 w-4" aria-hidden="true" />
+                          Raw prompt
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="diff"
+                          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:text-sm"
+                        >
+                          <GitCompare className="h-4 w-4" aria-hidden="true" />
+                          Diff view
+                        </TabsTrigger>
+                      </TabsList>
+                      <CreateRevisionSheet
+                        promptId={prompt.id}
+                        currentContent={selectedRevision.content}
+                      />
+                    </div>
+                  </div>
+                  <dl className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                    {metadata.map((item) => (
+                      <div key={item.label} className="flex flex-col gap-1">
+                        <dt className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                          <item.icon className="h-3.5 w-3.5 text-primary" />
+                          {item.label}
+                        </dt>
+                        <dd className="text-sm font-medium text-foreground leading-tight">
+                          {item.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardHeader>
+                <CardContent className="space-y-4 px-6 py-5">
+                  <RevisionMeta
+                    revision={selectedRevision}
+                    compareRevision={compareRevision}
+                    onChangeCompare={setCompareRevisionId}
+                    revisions={revisions}
+                  />
+                </CardContent>
+              </Card>
+              <section className="space-y-6">
+                <TabsContent
+                  value="raw"
+                  className="focus-visible:outline-none [&[data-state=inactive]]:hidden"
+                >
+                  <RawView content={selectedRevision.content} />
+                </TabsContent>
+                <TabsContent
+                  value="diff"
+                  className="focus-visible:outline-none [&[data-state=inactive]]:hidden"
+                >
+                  <DiffView
+                    lines={diffWithLineNumbers}
+                    selectedRevision={selectedRevision}
+                    compareRevision={compareRevision}
+                  />
+                </TabsContent>
+                <div className="border-t border-border/40 pt-6">
+                  <RevisionTimeline
+                    prompt={prompt}
+                    revisions={revisions}
+                    selectedRevisionId={selectedRevision.id}
+                    onSelectCompare={(revisionId) =>
+                      setCompareRevisionId(revisionId)
+                    }
+                    compareRevisionId={compareRevision?.id ?? null}
+                  />
+                </div>
+              </section>
             </div>
           </div>
-          <dl className="grid gap-4 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
-            {metadata.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-white/55 bg-white/88 px-4 py-3 shadow-[0_12px_32px_-32px_rgba(15,23,42,0.2)] transition dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_16px_40px_-30px_rgba(2,8,23,0.6)]"
-              >
-                <dt className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                  {item.label}
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-foreground dark:text-white">
-                  {item.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <RevisionMeta
-            revision={selectedRevision}
-            compareRevision={compareRevision}
-            onChangeCompare={setCompareRevisionId}
-            revisions={revisions}
-          />
-        </CardHeader>
-        <CardContent className="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-          <Tabs
-            value={viewMode}
-            onValueChange={(value) => setViewMode(value as "diff" | "raw")}
-            className="space-y-6"
-          >
-            <TabsList className="inline-flex w-full flex-wrap items-center justify-start gap-2 rounded-2xl border border-white/55 bg-white/85 p-1 shadow-sm dark:border-white/10 dark:bg-white/[0.08] sm:w-auto sm:flex-nowrap sm:rounded-full sm:gap-1">
-              <TabsTrigger
-                value="raw"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_16px_35px_-25px_rgba(99,102,241,0.6)]"
-              >
-                Raw prompt
-              </TabsTrigger>
-              <TabsTrigger
-                value="diff"
-                className="rounded-full px-4 py-1.5 text-sm font-semibold text-muted-foreground transition data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_16px_35px_-25px_rgba(99,102,241,0.6)]"
-              >
-                Diff view
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="diff" className="space-y-4 focus-visible:outline-none">
-              <DiffView
-                lines={diffWithLineNumbers}
-                selectedRevision={selectedRevision}
-                compareRevision={compareRevision}
-              />
-            </TabsContent>
-            <TabsContent value="raw" className="focus-visible:outline-none">
-              <RawView content={selectedRevision.content} />
-            </TabsContent>
-          </Tabs>
-          <CommentsSection revision={selectedRevision} />
-        </CardContent>
-      </Card>
-      <div className="w-full 2xl:w-[320px] 2xl:flex-shrink-0">
-        <RevisionTimeline
-          prompt={prompt}
-          revisions={revisions}
-          selectedRevisionId={selectedRevision.id}
-          onSelectCompare={(revisionId) => setCompareRevisionId(revisionId)}
-          compareRevisionId={compareRevision?.id ?? null}
-        />
+        </div>
+        <aside className="flex h-full min-h-0 flex-col">
+          <CollaborationPanel revision={selectedRevision} />
+        </aside>
       </div>
-    </div>
+    </Tabs>
   );
 }
 
@@ -214,18 +313,18 @@ function RevisionTimeline({
   compareRevisionId: string | null;
 }) {
   return (
-    <Card className="h-fit rounded-3xl border border-white/70 bg-white/75 shadow-[0_40px_110px_-65px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/65 dark:shadow-[0_45px_120px_-70px_rgba(2,8,23,0.85)] xl:sticky xl:top-8">
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="text-lg font-semibold tracking-tight">
-          Revision History
-        </CardTitle>
-        <p className="text-xs text-muted-foreground/90">
-          Select a version to inspect and optionally compare
-        </p>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[320px] px-4 pb-2 sm:h-[420px] xl:h-[640px] [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]">
-          <div className="space-y-3 pb-5 pt-3">
+    <Card className="flex flex-col rounded-3xl border border-border/70 bg-card/95 shadow-lg shadow-black/5">
+      <div className="flex flex-1 flex-col min-h-0">
+        <div className="sticky top-0 z-10 border-b border-border/60 bg-background/90 px-5 py-4 backdrop-blur-sm">
+          <CardTitle className="text-lg font-semibold tracking-tight">
+            Revision history
+          </CardTitle>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Jump between versions and select one to compare or review.
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-3 pb-6 shadow-inner">
+          <div className="space-y-2">
             {revisions.map((revision) => {
               const isActive = revision.id === selectedRevisionId;
               const isCompare = revision.id === compareRevisionId;
@@ -235,63 +334,92 @@ function RevisionTimeline({
                 <div
                   key={revision.id}
                   className={cn(
-                    "rounded-2xl border border-transparent bg-white/55 p-3 shadow-[0_16px_40px_-30px_rgba(15,23,42,0.25)] transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-border/60 hover:bg-white/85 dark:bg-slate-900/55 dark:hover:border-white/10 dark:hover:bg-slate-900/75",
-                    isActive
-                      ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_rgba(99,102,241,0.25),0_20px_50px_-32px_rgba(73,103,214,0.6)] dark:bg-primary/15"
-                      : ""
+                    "rounded-xl border border-transparent bg-card/70 px-3 py-2 text-sm transition hover:border-border/70 hover:bg-muted/60",
+                    isActive &&
+                      "border-primary/70 bg-primary/15 text-primary",
+                    !isActive &&
+                      isCompare &&
+                      "border-primary/50 bg-primary/10 text-primary"
                   )}
                 >
                   <Link
                     href={`/?project=${prompt.projectId}&prompt=${prompt.id}&revision=${revision.id}`}
-                    className="flex flex-col gap-1.5"
+                    className="flex flex-col gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold leading-tight">
+                      <span className="font-semibold leading-tight">
                         v{revision.version}
                       </span>
-                      <span className="text-xs text-muted-foreground/80">
+                      <span className="text-xs text-muted-foreground/70">
                         {new Date(revision.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                     {revision.changeLog ? (
-                      <p className="line-clamp-2 text-xs text-muted-foreground/90">
+                      <p className="line-clamp-2 text-xs text-muted-foreground">
                         {revision.changeLog}
                       </p>
                     ) : null}
                   </Link>
-                  <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground/80">
                     <button
                       type="button"
                       disabled={isDisabled}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold transition",
-                        isCompare
-                          ? "bg-primary/20 text-primary"
-                          : "text-muted-foreground hover:bg-muted/60",
-                        isDisabled &&
-                          "cursor-not-allowed opacity-50"
-                      )}
                       onClick={() => {
                         if (isDisabled) return;
                         onSelectCompare(isCompare ? null : revision.id);
                       }}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition",
+                        isCompare && !isDisabled
+                          ? "bg-primary/20 text-primary"
+                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60",
+                        isDisabled &&
+                          "cursor-not-allowed bg-transparent text-muted-foreground/80 opacity-60"
+                      )}
                     >
+                      <GitCompare className="h-3.5 w-3.5" aria-hidden="true" />
                       {isDisabled
                         ? "Active"
                         : isCompare
                           ? "Comparing"
                           : "Compare"}
                     </button>
-                    <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-medium text-muted-foreground dark:bg-white/[0.08]">
-                      {revision.comments.length} 💬
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2 py-0.5 font-medium text-muted-foreground">
+                      <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+                      {revision.comments.length}
                     </span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </ScrollArea>
-      </CardContent>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CollaborationPanel({
+  revision,
+}: {
+  revision: PromptData["revisions"][number];
+}) {
+  return (
+    <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-muted/30 shadow-lg shadow-black/5 supports-[backdrop-filter]:backdrop-blur-md">
+      <div className="border-b border-border/50 bg-background/70 px-6 py-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+          Collaboration
+        </p>
+        <h3 className="text-base font-semibold text-foreground">
+          Discussion for current revision
+        </h3>
+      </div>
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <CommentsSection revision={revision} />
+      </div>
+      <div className="border-t border-border/50 bg-background/95 px-6 py-4">
+        <AddCommentForm revisionId={revision.id} />
+      </div>
     </Card>
   );
 }
@@ -313,13 +441,13 @@ function RevisionMeta({
   });
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-white/60 bg-white/65 px-4 py-4 text-sm text-muted-foreground shadow-[0_12px_34px_-26px_rgba(15,23,42,0.25)] backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.05] dark:shadow-[0_16px_42px_-32px_rgba(2,8,23,0.6)] sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-4 text-sm text-muted-foreground supports-[backdrop-filter]:backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full border border-primary/30 bg-primary/12 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary dark:border-primary/50 dark:bg-primary/20 dark:text-white">
+        <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/12 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
           v{revision.version}
         </span>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground/80">
-          <span className="font-medium text-foreground dark:text-white">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">
             Viewing version {revision.version}
           </span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
@@ -338,13 +466,13 @@ function RevisionMeta({
         >
           <SelectTrigger
             aria-label="Select revision to compare against"
-            className="h-9 min-w-[11rem] rounded-full border border-white/60 bg-white/90 px-3 text-sm font-medium text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/[0.08] dark:text-white"
+            className="h-9 min-w-[11rem] rounded-full border border-border/70 bg-card/80 px-3 text-sm font-medium text-foreground transition focus-visible:ring-2 focus-visible:ring-ring"
           >
             <SelectValue placeholder="Previous revision" />
           </SelectTrigger>
           <SelectContent
             align="end"
-            className="rounded-xl border border-border bg-background/95 p-1 text-foreground shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/85 dark:border-white/10 dark:bg-background/90"
+            className="rounded-xl border border-border bg-card/95 p-1 text-foreground shadow-lg supports-[backdrop-filter]:backdrop-blur-sm"
           >
             <SelectItem value="previous">Previous revision</SelectItem>
             {revisions
@@ -373,7 +501,7 @@ function DiffView({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/90">
-        <span className="font-medium text-foreground dark:text-white">
+        <span className="font-medium text-foreground">
           Comparing version {selectedRevision.version} with{" "}
           {compareRevision
             ? `version ${compareRevision.version}`
@@ -381,47 +509,50 @@ function DiffView({
         </span>
       </div>
       {lines.length === 0 ? (
-        <div className="rounded-2xl border border-white/55 bg-white/92 p-5 text-sm text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/10 dark:bg-white/[0.05] dark:text-muted-foreground">
+        <div className="rounded-2xl border border-border/70 bg-muted/30 p-5 text-sm text-muted-foreground">
           No differences detected.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/55 bg-white/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <ScrollArea className="max-h-[60vh] [mask-image:linear-gradient(to_bottom,transparent,black_1%,black_99%,transparent)] sm:max-h-[70vh] lg:h-[600px]">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm shadow-black/5">
+          <ScrollArea className="max-h-[clamp(340px,52vh,520px)]">
             <div>
-              <div className="sticky top-0 z-10 hidden grid-cols-[3.5rem,3.5rem,1fr] bg-white/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 backdrop-blur-sm dark:bg-slate-900/80 md:grid">
-                <span className="text-right">Old</span>
-                <span className="text-right">New</span>
-                <span>Diff</span>
+              <div className="sticky top-0 z-10 hidden grid-cols-[3.5rem,3.5rem,1fr] bg-card/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 backdrop-blur-sm md:grid">
+                <span className="text-right">Prev</span>
+                <span className="text-right">Next</span>
+                <span>Changes</span>
               </div>
               {lines.map((line) => (
                 <div
                   key={line.id}
                   className={cn(
-                    "grid grid-cols-[3.5rem,3.5rem,1fr] border-b border-white/60 bg-white/55 transition last:border-b-0 dark:border-white/5 dark:bg-white/[0.05]",
+                    "grid grid-cols-[3.5rem,3.5rem,1fr] border-b border-border/60 border-l-2 border-l-transparent bg-card/80 transition last:border-b-0",
+                    line.hasAddition &&
+                      line.hasRemoval &&
+                      "border-l-amber-400 dark:border-l-amber-300",
                     line.hasAddition &&
                       !line.hasRemoval &&
-                      "bg-emerald-400/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200",
+                      "border-l-emerald-500 dark:border-l-emerald-400",
                     line.hasRemoval &&
                       !line.hasAddition &&
-                      "bg-rose-400/10 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200"
+                      "border-l-rose-500 dark:border-l-rose-400"
                   )}
                 >
-                  <div className="select-none border-r border-white/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80 dark:border-white/10 dark:text-muted-foreground/70">
+                  <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
                     {line.oldLineNumber ?? ""}
                   </div>
-                  <div className="select-none border-r border-white/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80 dark:border-white/10 dark:text-muted-foreground/70">
+                  <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
                     {line.newLineNumber ?? ""}
                   </div>
-                  <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90 dark:text-white">
+                  <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90">
                     {line.tokens.length ? (
                       line.tokens.map((token) => (
                         <span
                           key={token.id}
                           className={cn(
                             token.type === "added" &&
-                              "rounded bg-emerald-400/20 px-1 text-emerald-700 dark:bg-emerald-400/25 dark:text-emerald-100",
+                              "rounded bg-emerald-500/15 px-1 text-emerald-700 dark:text-emerald-200",
                             token.type === "removed" &&
-                              "rounded bg-rose-400/20 px-1 text-rose-700 line-through dark:bg-rose-400/25 dark:text-rose-100"
+                              "rounded bg-rose-500/15 px-1 text-rose-700 line-through dark:text-rose-200"
                           )}
                         >
                           {token.value || " "}
@@ -442,30 +573,45 @@ function DiffView({
 }
 
 function RawView({ content }: { content: string }) {
-  // Normalize line endings to prevent hydration errors
   const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const lines = normalizedContent.split("\n");
-  
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/55 bg-white/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-      <ScrollArea className="max-h-[60vh] [mask-image:linear-gradient(to_bottom,transparent,black_1%,black_99%,transparent)] sm:max-h-[70vh] lg:h-[600px]">
+    <Card className="overflow-hidden rounded-3xl border border-border/70 bg-card/95 shadow-lg shadow-black/5 supports-[backdrop-filter]:backdrop-blur-md">
+      <CardHeader className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-card/90 px-5 py-5">
         <div>
-          {lines.map((line, index) => (
-            <div
-              key={`line-${index}`}
-              className="grid grid-cols-[3.5rem,1fr] border-b border-white/60 bg-white/55 transition hover:bg-white/80 last:border-b-0 dark:border-white/5 dark:bg-white/[0.05] dark:hover:bg-white/[0.1]"
-            >
-              <div className="select-none border-r border-white/60 bg-white/70 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80 dark:border-white/10 dark:bg-white/[0.08]">
-                {index + 1}
-              </div>
-              <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90 dark:text-white">
-                {line || " "}
-              </pre>
-            </div>
-          ))}
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+            Revision content
+          </p>
+          <h3 className="text-lg font-semibold text-foreground">
+            Raw prompt
+          </h3>
         </div>
-      </ScrollArea>
-    </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+          {lines.length} lines
+        </span>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="max-h-[clamp(360px,58vh,620px)]">
+          <div className="text-sm">
+            {lines.map((line, index) => (
+              <div
+                key={`line-${index}`}
+                className="grid grid-cols-[3.5rem,1fr] border-b border-border/60 bg-card/80 transition last:border-b-0 hover:bg-card/70"
+              >
+                <div className="select-none border-r border-border/60 bg-muted/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground">
+                  {index + 1}
+                </div>
+                <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90">
+                  {line || " "}
+                </pre>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -474,49 +620,64 @@ function CommentsSection({
 }: {
   revision: PromptData["revisions"][number];
 }) {
+  if (!revision.comments.length) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/50 bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground">
+        <p>No comments yet. Start the conversation with an insight or question.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5 rounded-2xl border border-white/55 bg-white/88 p-5 shadow-[0_10px_30px_-32px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold tracking-tight text-foreground">
-          Discussion
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Annotate this revision with insights or open questions for your team.
-        </p>
-      </div>
-      <div className="space-y-3">
-        {revision.comments.length ? (
-          revision.comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="rounded-xl border border-white/60 bg-white/90 p-3 text-sm shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span>
-                  Line {comment.lineNumber ?? "—"} •{" "}
-                  {new Date(comment.createdAt).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </span>
-                {comment.resolved ? (
-                  <Badge variant="outline" className="rounded-full border border-emerald-500/40 bg-emerald-500/10 text-[10px] uppercase tracking-wide text-emerald-600 dark:border-emerald-400/50 dark:bg-emerald-500/15 dark:text-emerald-200">
-                    Resolved
-                  </Badge>
-                ) : null}
+    <div className="flex flex-col gap-3">
+      {revision.comments.map((comment, index) => {
+        const formattedDate = new Date(comment.createdAt).toLocaleString(
+          undefined,
+          {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }
+        );
+        return (
+          <article
+            key={comment.id}
+            className={cn(
+              "rounded-2xl border px-4 py-4 shadow-sm shadow-black/5 transition hover:border-border/60 hover:shadow-md",
+              index % 2 === 0
+                ? "border-border/50 bg-card/95"
+                : "border-border/40 bg-muted/50"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                {comment.lineNumber ? `L${comment.lineNumber}` : "Note"}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground dark:text-white">
-                {comment.body}
-              </p>
+              <div className="flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/80">
+                  <span className="font-semibold text-foreground/90">
+                    {comment.lineNumber
+                      ? `Line ${comment.lineNumber}`
+                      : "General"}
+                  </span>
+                  <span className="text-muted-foreground/40">•</span>
+                  <span>{formattedDate}</span>
+                  {comment.resolved ? (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-200"
+                    >
+                      Resolved
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {comment.body}
+                </p>
+              </div>
             </div>
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No comments yet. Share what worked or what to try next.
-          </p>
-        )}
-      </div>
-      <AddCommentForm revisionId={revision.id} />
+          </article>
+        );
+      })}
     </div>
   );
 }

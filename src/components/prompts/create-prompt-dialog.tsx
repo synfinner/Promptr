@@ -1,7 +1,15 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { FilePlus2 } from "lucide-react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 
 import { createPrompt, type ActionState } from "@/app/(app)/actions";
 import { Button } from "@/components/ui/button";
@@ -24,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 
 const initialState: ActionState = {};
 
@@ -41,12 +50,31 @@ export function CreatePromptDialog({
   const [open, setOpen] = useState(false);
   const [promptType, setPromptType] = useState("USER");
   const [state, formAction] = useActionState(createPrompt, initialState);
+  const router = useRouter();
+  const { toast } = useToast();
   const errorSummary = state?.issues?.join(" ");
+
+  useEffect(() => {
+    if (state?.success && state.redirectTo) {
+      toast({
+        title: state.success,
+        description: "Switching to the new prompt workspace.",
+        variant: "success",
+      });
+      startTransition(() => setOpen(false));
+      router.push(state.redirectTo);
+    }
+  }, [router, state?.redirectTo, state?.success, toast]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="w-full">
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full gap-2 rounded-full px-3"
+        >
+          <FilePlus2 className="h-4 w-4" aria-hidden="true" />
           New Prompt
         </Button>
       </DialogTrigger>

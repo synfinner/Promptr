@@ -1,10 +1,17 @@
-import Link from "next/link";
+"use client";
 
+import { useOptimistic, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+
+import { deletePromptAction } from "@/app/(app)/actions";
 import { CreatePromptDialog } from "@/components/prompts/create-prompt-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
 type PromptSummary = {
@@ -36,13 +43,62 @@ export function PromptList({
   selectedPromptId,
   className,
 }: PromptListProps) {
-  const hasPrompts = prompts.length > 0;
+  const router = useRouter();
+  const { toast } = useToast();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [optimisticPrompts, removePromptOptimistic] = useOptimistic(
+    prompts,
+    (
+      currentPrompts: PromptSummary[],
+      promptId: string
+    ): PromptSummary[] => currentPrompts.filter((prompt) => prompt.id !== promptId)
+  );
+  const [isPending, startTransition] = useTransition();
+
+  const hasPrompts = optimisticPrompts.length > 0;
+
+  const handleDeletePrompt = (prompt: PromptSummary) => {
+    const confirmed = window.confirm(
+      `Delete prompt “${prompt.title}”? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    startTransition(() => {
+      removePromptOptimistic(prompt.id);
+      setPendingId(prompt.id);
+
+      void (async () => {
+        const result = await deletePromptAction({
+          promptId: prompt.id,
+          projectId: prompt.projectId,
+        });
+
+        if (result?.error) {
+          toast({
+            title: "Prompt was not deleted",
+            description: result.error,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: result?.success ?? "Prompt deleted.",
+          });
+        }
+
+        router.refresh();
+        setPendingId(null);
+      })();
+    });
+  };
 
   return (
     <Card
       className={cn(
-        "flex min-h-[320px] flex-col overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.55)] backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-slate-900/65 dark:shadow-[0_35px_90px_-55px_rgba(2,8,23,0.85)]",
-        className,
+        "flex min-h-[320px] flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-md shadow-black/5 supports-[backdrop-filter]:backdrop-blur-md transition-colors dark:shadow-none",
+        className
       )}
     >
       <CardHeader className="space-y-2 pb-4">
@@ -56,68 +112,94 @@ export function PromptList({
           Track each prompt&apos;s evolution and pick up where you left off faster.
         </p>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
+      <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
         {hasPrompts ? (
-          <ScrollArea className="relative h-full px-4 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]">
-            <div className="space-y-3 pb-6 pt-3">
-              {prompts.map((prompt) => {
+          <ScrollArea className="relative h-full px-4">
+            <div className="space-y-3 pb-4 pt-3">
+              {optimisticPrompts.map((prompt) => {
                 const isActive = prompt.id === selectedPromptId;
+                const isDeleting = pendingId === prompt.id && isPending;
                 const latest = prompt.revisions[0];
 
                 return (
-                  <Link
+                  <article
                     key={prompt.id}
-                    href={`/?project=${prompt.projectId}&prompt=${prompt.id}`}
                     className={cn(
-                      "group relative block rounded-2xl border border-white/40 bg-white/50 p-3 text-left shadow-[0_20px_45px_-36px_rgba(15,23,42,0.35)] transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-white/80 hover:bg-white/85 hover:shadow-[0_26px_55px_-40px_rgba(73,93,182,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-white/10 dark:bg-slate-900/55 dark:shadow-[0_20px_50px_-38px_rgba(7,11,22,0.9)] dark:hover:border-white/20 dark:hover:bg-slate-900/80 dark:hover:shadow-[0_26px_60px_-40px_rgba(28,45,94,0.75)]",
+                      "group relative overflow-hidden rounded-2xl border border-transparent bg-card/70 p-4 shadow-sm shadow-black/5 transition hover:-translate-y-[1px] hover:border-border/80 hover:bg-card focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
                       isActive
-                        ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_rgba(99,102,241,0.35),0_24px_60px_-36px_rgba(73,103,214,0.6)] dark:bg-primary/15 dark:shadow-[0_0_0_1px_rgba(99,102,241,0.45),0_24px_60px_-36px_rgba(38,73,199,0.75)]"
+                        ? "border-primary/70 bg-primary/10 text-primary"
                         : ""
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex flex-1 flex-col">
-                        <span className="font-semibold leading-tight tracking-tight">
-                          {prompt.title}
-                        </span>
+                    <div className="relative z-10 flex items-start justify-between gap-2">
+                      <div className="flex flex-1 flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/?project=${prompt.projectId}&prompt=${prompt.id}`}
+                            className="text-sm font-semibold leading-tight tracking-tight text-foreground transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          >
+                            {prompt.title}
+                          </Link>
+                          <Badge
+                            variant="secondary"
+                            className="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                          >
+                            {prompt.promptType.toLowerCase()}
+                          </Badge>
+                        </div>
                         {prompt.summary ? (
-                          <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {prompt.summary}
-                          </span>
+                          </p>
                         ) : null}
                         {prompt.model ? (
-                          <span className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                             Model ·{" "}
-                            <span className="font-semibold text-foreground normal-case dark:text-white">
+                            <span className="font-semibold text-foreground normal-case">
                               {prompt.model}
                             </span>
                           </span>
                         ) : null}
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-primary/40 bg-primary/15 uppercase tracking-wide text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-all duration-200 ease-out group-hover:border-primary/60 group-hover:bg-primary/25 group-hover:text-primary dark:border-primary/50 dark:bg-primary/30 dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeletePrompt(prompt);
+                        }}
+                        disabled={isDeleting}
+                        className={cn(
+                          "relative z-20 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/80 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          "opacity-0 group-hover:opacity-100",
+                          isDeleting && "opacity-100"
+                        )}
+                        aria-label={`Delete prompt ${prompt.title}`}
                       >
-                        {prompt.promptType.toLowerCase()}
-                      </Badge>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
                     </div>
                     {latest ? (
-                      <div className="mt-3 rounded-xl bg-[hsla(var(--surface-3)_/_0.55)] px-3 py-2 text-xs text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:bg-white/5 dark:text-muted-foreground dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                        <div className="flex items-center justify-between">
+                      <Link
+                        href={`/?project=${prompt.projectId}&prompt=${prompt.id}&revision=${latest.id}`}
+                        className="relative z-10 mt-3 block rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground transition hover:border-border hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      >
+                        <div className="flex items-center justify-between text-foreground/80">
                           <span>Version {latest.version}</span>
                           <span>
                             {new Date(latest.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         {latest.changeLog ? (
-                          <Separator className="my-2 opacity-40" />
+                          <>
+                            <Separator className="my-2 opacity-40" />
+                            <p className="line-clamp-2 text-foreground/80">
+                              {latest.changeLog}
+                            </p>
+                          </>
                         ) : null}
-                        {latest.changeLog ? (
-                          <p className="line-clamp-2">{latest.changeLog}</p>
-                        ) : null}
-                      </div>
+                      </Link>
                     ) : null}
-                  </Link>
+                  </article>
                 );
               })}
             </div>
