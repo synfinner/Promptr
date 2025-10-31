@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { ToastActionElement, type ToastProps } from "@/components/ui/toast"
+import { createId } from "@/lib/utils"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -123,7 +124,7 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  const id = crypto.randomUUID()
+  const id = createId()
 
   const update = (props: ToasterToast) =>
     dispatch({

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/db/client";
 import { promptComments, promptRevisions, prompts, projects } from "@/db/schema";
+import { createId } from "@/lib/utils";
 
 const projectInputSchema = z.object({
   name: z
@@ -96,7 +97,7 @@ export async function createProject(
     };
   }
 
-  const id = crypto.randomUUID();
+  const id = createId();
   const timestamp = now();
 
   await db.insert(projects).values({
@@ -130,8 +131,8 @@ export async function createPrompt(
     };
   }
 
-  const promptId = crypto.randomUUID();
-  const revisionId = crypto.randomUUID();
+  const promptId = createId();
+  const revisionId = createId();
   const timestamp = now();
 
   await db.insert(prompts).values({
@@ -194,7 +195,7 @@ export async function createRevision(
     .limit(1);
 
   const nextVersion = (latest?.version ?? 0) + 1;
-  const revisionId = crypto.randomUUID();
+  const revisionId = createId();
 
   await db.insert(promptRevisions).values({
     id: revisionId,
@@ -339,7 +340,7 @@ export async function addComment(
   }
 
   const timestamp = now();
-  const commentId = crypto.randomUUID();
+  const commentId = createId();
 
   await db.insert(promptComments).values({
     id: commentId,
