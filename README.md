@@ -4,9 +4,11 @@
 
 Promptr keeps every prompt, revision, and discussion in one place so teams can move faster from idea to production. It bundles opinionated tooling for tracking prompt history, diffing revisions, leaving contextual feedback, and keeping metadata in sync with your projects.
 
-![Promptr Screenshot](./images/promptr_view1.png)
+![Promptr Screenshot](./images/promptr_2.jpg)
 
-![Promptr Screenshot](./images/promptr_view2.png)
+![Promptr Screenshot](./images/promptr_2_1.jpg)
+
+![Promptr Screenshot](./images/promptr_2_2.jpg)
 
 ## Highlights
 - Project-centric workspace to group related prompts with summaries and activity stats.
