@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 type PromptSummary = {
   id: string;
@@ -185,9 +185,7 @@ export function PromptList({
                       >
                         <div className="flex items-center justify-between text-foreground/80">
                           <span>Version {latest.version}</span>
-                          <span>
-                            {new Date(latest.createdAt).toLocaleDateString()}
-                          </span>
+                          <span>{formatDate(latest.createdAt)}</span>
                         </div>
                         {latest.changeLog ? (
                           <>

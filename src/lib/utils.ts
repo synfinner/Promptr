@@ -5,6 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const DEFAULT_LOCALE = "en-US";
+const DEFAULT_TIME_ZONE = "UTC";
+
+export function formatDate(
+  value: string | number | Date,
+  options: Intl.DateTimeFormatOptions = {},
+  locale = DEFAULT_LOCALE
+) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: DEFAULT_TIME_ZONE,
+    ...options,
+  }).format(date);
+}
+
 function fallbackRandomUUID(cryptoApi?: Crypto): string {
   const bytes = new Uint8Array(16);
 

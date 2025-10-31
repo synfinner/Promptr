@@ -13,13 +13,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AddCommentForm } from "@/components/prompts/add-comment-form";
 import { CreateRevisionSheet } from "@/components/prompts/create-revision-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -33,6 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { fetchPromptDetails } from "@/server/queries";
 
@@ -76,6 +76,8 @@ export function PromptDetailClient({
   const [compareRevisionId, setCompareRevisionId] = useState<string | null>(
     defaultCompareRevisionId
   );
+  const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const compareRevision =
     compareRevisionId &&
@@ -146,15 +148,42 @@ export function PromptDetailClient({
     },
   ];
 
+  useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  async function handleCopyRawPrompt() {
+    if (!navigator?.clipboard?.writeText) {
+      console.error("Clipboard API not available");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selectedRevision.content);
+      setCopied(true);
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Copy failed", error);
+    }
+  }
+
   return (
     <Tabs
       value={viewMode}
       onValueChange={(value) => setViewMode(value as "raw" | "diff")}
-      className="flex h-full min-h-0 flex-col"
+      className="flex min-h-0 flex-col"
     >
-      <div className="grid h-full min-h-0 w-full grid-cols-1 gap-6 pt-4 md:pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:gap-8">
+      <div className="grid min-h-0 w-full grid-cols-1 gap-6 pt-4 md:pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:gap-8">
         <div className="flex min-h-0 flex-col">
-          <div className="flex-1 overflow-y-auto pr-1 pb-10 [scrollbar-gutter:stable]">
+          <div className="flex-1 pr-1 pb-10">
             <div className="flex flex-col gap-6">
               <Card className="relative flex flex-col rounded-3xl border border-border/70 bg-card/95 shadow-lg shadow-black/5">
                 <CardHeader className="space-y-3 border-b border-border/60 px-6 py-6 md:py-7">
@@ -230,6 +259,14 @@ export function PromptDetailClient({
                           Diff view
                         </TabsTrigger>
                       </TabsList>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="gap-2 rounded-full px-4"
+                        onClick={handleCopyRawPrompt}
+                      >
+                        {copied ? "Copied!" : "Copy Raw Prompt"}
+                      </Button>
                       <CreateRevisionSheet
                         promptId={prompt.id}
                         currentContent={selectedRevision.content}
@@ -323,7 +360,7 @@ function RevisionTimeline({
             Jump between versions and select one to compare or review.
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-3 pb-6 shadow-inner">
+        <div className="flex-1 px-4 py-3 pb-6 shadow-inner">
           <div className="space-y-2">
             {revisions.map((revision) => {
               const isActive = revision.id === selectedRevisionId;
@@ -405,7 +442,7 @@ function CollaborationPanel({
   revision: PromptData["revisions"][number];
 }) {
   return (
-    <Card className="flex h-full flex-col rounded-3xl border border-border/60 bg-muted/30 shadow-lg shadow-black/5 supports-[backdrop-filter]:backdrop-blur-md">
+    <Card className="flex flex-col rounded-3xl border border-border/60 bg-muted/30 shadow-lg shadow-black/5 supports-[backdrop-filter]:backdrop-blur-md">
       <div className="border-b border-border/50 bg-background/70 px-6 py-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
           Collaboration
@@ -414,7 +451,7 @@ function CollaborationPanel({
           Discussion for current revision
         </h3>
       </div>
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className="flex-1 px-6 py-5">
         <CommentsSection revision={revision} />
       </div>
       <div className="border-t border-border/50 bg-background/95 px-6 py-4">
@@ -514,58 +551,56 @@ function DiffView({
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/90 shadow-sm shadow-black/5">
-          <ScrollArea className="max-h-[clamp(340px,52vh,520px)]">
-            <div>
-              <div className="sticky top-0 z-10 hidden grid-cols-[3.5rem,3.5rem,1fr] bg-card/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 backdrop-blur-sm md:grid">
-                <span className="text-right">Prev</span>
-                <span className="text-right">Next</span>
-                <span>Changes</span>
-              </div>
-              {lines.map((line) => (
-                <div
-                  key={line.id}
-                  className={cn(
-                    "grid grid-cols-[3.5rem,3.5rem,1fr] border-b border-border/60 border-l-2 border-l-transparent bg-card/80 transition last:border-b-0",
-                    line.hasAddition &&
-                      line.hasRemoval &&
-                      "border-l-amber-400 dark:border-l-amber-300",
-                    line.hasAddition &&
-                      !line.hasRemoval &&
-                      "border-l-emerald-500 dark:border-l-emerald-400",
-                    line.hasRemoval &&
-                      !line.hasAddition &&
-                      "border-l-rose-500 dark:border-l-rose-400"
-                  )}
-                >
-                  <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
-                    {line.oldLineNumber ?? ""}
-                  </div>
-                  <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
-                    {line.newLineNumber ?? ""}
-                  </div>
-                  <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90">
-                    {line.tokens.length ? (
-                      line.tokens.map((token) => (
-                        <span
-                          key={token.id}
-                          className={cn(
-                            token.type === "added" &&
-                              "rounded bg-emerald-500/15 px-1 text-emerald-700 dark:text-emerald-200",
-                            token.type === "removed" &&
-                              "rounded bg-rose-500/15 px-1 text-rose-700 line-through dark:text-rose-200"
-                          )}
-                        >
-                          {token.value || " "}
-                        </span>
-                      ))
-                    ) : (
-                      " "
-                    )}
-                  </pre>
-                </div>
-              ))}
+          <div className="max-h-[70vh] overflow-y-auto">
+            <div className="sticky top-0 z-10 hidden grid-cols-[3.5rem,3.5rem,1fr] bg-card/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 backdrop-blur-sm md:grid">
+              <span className="text-right">Prev</span>
+              <span className="text-right">Next</span>
+              <span>Changes</span>
             </div>
-          </ScrollArea>
+            {lines.map((line) => (
+              <div
+                key={line.id}
+                className={cn(
+                  "grid grid-cols-[3.5rem,3.5rem,1fr] border-b border-border/60 border-l-2 border-l-transparent bg-card/80 transition last:border-b-0",
+                  line.hasAddition &&
+                    line.hasRemoval &&
+                    "border-l-amber-400 dark:border-l-amber-300",
+                  line.hasAddition &&
+                    !line.hasRemoval &&
+                    "border-l-emerald-500 dark:border-l-emerald-400",
+                  line.hasRemoval &&
+                    !line.hasAddition &&
+                    "border-l-rose-500 dark:border-l-rose-400"
+                )}
+              >
+                <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
+                  {line.oldLineNumber ?? ""}
+                </div>
+                <div className="select-none border-r border-border/60 px-3 py-1.5 text-right text-[11px] font-semibold text-muted-foreground/80">
+                  {line.newLineNumber ?? ""}
+                </div>
+                <pre className="whitespace-pre-wrap px-4 py-1.5 font-mono text-[13px] leading-relaxed text-foreground/90">
+                  {line.tokens.length ? (
+                    line.tokens.map((token) => (
+                      <span
+                        key={token.id}
+                        className={cn(
+                          token.type === "added" &&
+                            "rounded bg-emerald-500/15 px-1 text-emerald-700 dark:text-emerald-200",
+                          token.type === "removed" &&
+                            "rounded bg-rose-500/15 px-1 text-rose-700 line-through dark:text-rose-200"
+                        )}
+                      >
+                        {token.value || " "}
+                      </span>
+                    ))
+                  ) : (
+                    " "
+                  )}
+                </pre>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -593,7 +628,7 @@ function RawView({ content }: { content: string }) {
         </span>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="max-h-[clamp(360px,58vh,620px)]">
+        <div className="max-h-[70vh] overflow-y-auto">
           <div className="text-sm">
             {lines.map((line, index) => (
               <div
@@ -609,7 +644,7 @@ function RawView({ content }: { content: string }) {
               </div>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
