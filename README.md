@@ -48,6 +48,7 @@ The development server binds to `0.0.0.0`, so other devices on your network can 
 Promptr works out of the box, but you can override the default database settings:
 - `DATABASE_DIRECTORY` – Directory where the SQLite file is stored. Defaults to `<project-root>/data`.
 - `DATABASE_FILE` – Absolute path to the database file. Defaults to `<DATABASE_DIRECTORY>/promptr.db`.
+- `DATABASE_MIGRATE_ON_BOOT` – Run Drizzle migrations automatically on startup when set to `true`. Useful for fresh containers.
 
 Set these variables in a `.env.local` file or your preferred configuration system before running the app.
 
@@ -74,6 +75,7 @@ Generated migrations live under `drizzle/migrations/`. They can be checked into 
 - `npm run db:push` – Apply migrations if you generate custom SQL.
 
 ## Deployment
+### Node runtime
 1. Build the app locally or in CI:
    ```bash
    npm run build
@@ -83,6 +85,36 @@ Generated migrations live under `drizzle/migrations/`. They can be checked into 
    ```bash
    npm run start
    ```
+
+### Docker
+Package the app with the included `Dockerfile`:
+```bash
+docker build -t promptr:latest .
+```
+
+The container stores its SQLite database under `/app/data`. Mount that path to persist data between runs:
+```bash
+docker run --name promptr \
+  -p 3001:3000 \
+  -e NODE_ENV=production \
+  -e DATABASE_DIRECTORY=/app/data \
+  -e DATABASE_MIGRATE_ON_BOOT=true \
+  -v promptr_data:/app/data \
+  promptr:latest
+```
+
+Alternatively, use the provided Compose file, which wires up the same environment with a named volume:
+```bash
+docker compose up --build
+```
+
+The Compose file already enables `DATABASE_MIGRATE_ON_BOOT=true` so first-run tables are created automatically.
+
+To keep backups or share the database with the host, swap the named volume for a bind mount:
+```yaml
+volumes:
+  - ./data:/app/data
+```
 
 ## Using Promptr
 - Create a project from the sidebar to start a workspace.

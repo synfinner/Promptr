@@ -43,9 +43,7 @@ if (!state.drizzleDb) {
 }
 
 const shouldMigrate =
-  process.env.NODE_ENV !== "production" &&
-  process.env.DATABASE_MIGRATE_ON_BOOT === "true" &&
-  !state.migrated;
+  process.env.DATABASE_MIGRATE_ON_BOOT === "true" && !state.migrated;
 
 if (shouldMigrate) {
   try {

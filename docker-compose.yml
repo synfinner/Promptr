@@ -1,0 +1,17 @@
+services:
+  promptr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_DIRECTORY: /app/data
+      DATABASE_MIGRATE_ON_BOOT: "true"
+    ports:
+      - "3001:3000"
+    volumes:
+      - promptr_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  promptr_data:
